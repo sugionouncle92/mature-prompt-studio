@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, ShieldCheck, UserCheck, Check } from 'lucide-react';
+import { Lock, ShieldCheck, UserCheck, Check, Scale, Activity, Compass, Eye } from 'lucide-react';
 import { CharacterLocksState } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -22,7 +22,7 @@ const LOCKS_CONFIG: LockMeta[] = [
   },
   {
     key: 'bodyshape',
-    tag: '/bodyshape lock',
+    tag: '/bodyshape_lock',
     name: 'Body Shape Lock',
   },
   {
@@ -50,6 +50,26 @@ const LOCKS_CONFIG: LockMeta[] = [
     tag: '/hairlock',
     name: 'Hair Lock',
   },
+  {
+    key: 'bodyproportionlock',
+    tag: '/bodyproportionlock',
+    name: 'Body Proportion Lock',
+  },
+  {
+    key: 'anatomylock',
+    tag: '/anatomylock',
+    name: 'Anatomy Lock',
+  },
+  {
+    key: 'poseconsistency',
+    tag: '/poseconsistency',
+    name: 'Pose Consistency Lock',
+  },
+  {
+    key: 'perspectivecorrection',
+    tag: '/perspectivecorrection',
+    name: 'Perspective Correction Lock',
+  },
 ];
 
 export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange }) => {
@@ -71,7 +91,28 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
       agepreserve: val,
       expressionlock: val,
       hairlock: val,
+      bodyproportionlock: val,
+      anatomylock: val,
+      poseconsistency: val,
+      perspectivecorrection: val,
     });
+  };
+
+  const getLockIcon = (key: keyof CharacterLocksState) => {
+    switch (key) {
+      case 'agepreserve':
+        return <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />;
+      case 'bodyproportionlock':
+        return <Scale className="w-3.5 h-3.5 text-amber-400" />;
+      case 'anatomylock':
+        return <Activity className="w-3.5 h-3.5 text-emerald-400" />;
+      case 'poseconsistency':
+        return <Compass className="w-3.5 h-3.5 text-cyan-400" />;
+      case 'perspectivecorrection':
+        return <Eye className="w-3.5 h-3.5 text-indigo-400" />;
+      default:
+        return <UserCheck className="w-3.5 h-3.5 text-slate-400" />;
+    }
   };
 
   const activeCount = Object.values(locks).filter(Boolean).length;
@@ -114,7 +155,7 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
       </div>
 
       {/* Locks Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-stretch">
         {LOCKS_CONFIG.map((item) => {
           const isActive = locks[item.key];
           const description = t.locksDesc[item.key];
@@ -123,20 +164,20 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
             <div
               key={item.key}
               onClick={() => toggleLock(item.key)}
-              className={`p-3.5 rounded-xl border cursor-pointer transition select-none flex flex-col justify-between ${
+              className={`p-3.5 rounded-xl border cursor-pointer transition select-none flex flex-col justify-between h-full ${
                 isActive
                   ? 'bg-rose-950/20 border-rose-500/50 shadow-sm shadow-rose-950/20'
                   : 'bg-slate-950/40 border-slate-800 hover:border-slate-700'
               }`}
             >
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
+              <div className="flex-1 flex flex-col">
+                <div className="flex items-center justify-between mb-2 gap-2">
                   <span className="font-mono text-xs font-bold text-amber-300 tracking-tight">
                     {item.tag}
                   </span>
                   {/* Switch Pill */}
                   <div
-                    className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center ${
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out relative flex items-center shrink-0 ${
                       isActive ? 'bg-rose-500' : 'bg-slate-800'
                     }`}
                   >
@@ -150,16 +191,12 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 mb-1">
-                  {item.key === 'agepreserve' ? (
-                    <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
-                  ) : (
-                    <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                  )}
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 mb-1.5">
+                  {getLockIcon(item.key)}
                   <span>{item.name}</span>
                 </div>
 
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-400 leading-relaxed mt-auto">
                   {description}
                 </p>
               </div>

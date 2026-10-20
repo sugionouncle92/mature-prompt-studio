@@ -1,25 +1,50 @@
 import React from 'react';
 import { FileText, KeyRound, Sparkles, RotateCcw } from 'lucide-react';
+import { ImageToPromptInput } from './ImageToPromptInput';
+import { ReferenceImageInput } from './ReferenceImageInput';
+import { OutfitReferenceInput } from './OutfitReferenceInput';
+import { ReferenceImageData, OutfitLayeringConfig, SubjectOutfitConfig } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext';
 
 interface InputSectionProps {
+  apiKey?: string;
+  modelId?: string;
   samplePrompt: string;
   keywords: string;
+  referenceImages: ReferenceImageData[];
+  outfitImages: Record<string, ReferenceImageData>;
+  subjectOutfitConfigs: Record<string, SubjectOutfitConfig>;
+  layeringConfig?: OutfitLayeringConfig;
   onSamplePromptChange: (val: string) => void;
   onKeywordsChange: (val: string) => void;
+  onReferenceImagesChange: (images: ReferenceImageData[]) => void;
+  onOutfitChange: (subjectId: string, outfit: ReferenceImageData) => void;
+  onOutfitRemove: (subjectId: string) => void;
+  onSubjectOutfitConfigChange: (subjectId: string, config: SubjectOutfitConfig) => void;
+  onLayeringConfigChange?: (config: OutfitLayeringConfig) => void;
   onClearInputs: () => void;
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({
+  apiKey = '',
+  modelId = 'gemini-2.5-flash',
   samplePrompt,
   keywords,
+  referenceImages,
+  outfitImages,
+  subjectOutfitConfigs,
   onSamplePromptChange,
   onKeywordsChange,
+  onReferenceImagesChange,
+  onOutfitChange,
+  onOutfitRemove,
+  onSubjectOutfitConfigChange,
   onClearInputs,
 }) => {
   const { t } = useLanguage();
   const hasSample = samplePrompt.trim().length > 0;
   const hasKeywords = keywords.trim().length > 0;
+  const hasImages = referenceImages.length > 0;
 
   // Determine active logic
   let logicBadge = {
@@ -63,7 +88,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          {(hasSample || hasKeywords) && (
+          {(hasSample || hasKeywords || hasImages) && (
             <button
               onClick={onClearInputs}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
@@ -83,9 +108,9 @@ export const InputSection: React.FC<InputSectionProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
         {/* Sample Prompt Area */}
-        <div className="space-y-2">
+        <div className="space-y-2 flex flex-col h-full">
           <div className="flex items-center justify-between">
             <label
               htmlFor="sample-prompt"
@@ -105,7 +130,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
             value={samplePrompt}
             onChange={(e) => onSamplePromptChange(e.target.value)}
             placeholder={t.samplePromptPlaceholder}
-            className="w-full bg-slate-950/80 border border-slate-800 focus:border-amber-500/80 focus:ring-2 focus:ring-amber-500/20 rounded-xl p-3.5 text-sm text-slate-200 placeholder-slate-500 transition resize-y leading-relaxed outline-none"
+            className="w-full flex-1 min-h-[150px] bg-slate-950/80 border border-slate-800 focus:border-amber-500/80 focus:ring-2 focus:ring-amber-500/20 rounded-xl p-3.5 text-sm text-slate-200 placeholder-slate-500 transition resize-y leading-relaxed outline-none"
           />
           <p className="text-[11px] text-slate-500">
             {t.samplePromptHint}
@@ -113,7 +138,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
         </div>
 
         {/* Keywords Area */}
-        <div className="space-y-2">
+        <div className="space-y-2 flex flex-col h-full">
           <div className="flex items-center justify-between">
             <label
               htmlFor="keywords-input"
@@ -133,13 +158,37 @@ export const InputSection: React.FC<InputSectionProps> = ({
             value={keywords}
             onChange={(e) => onKeywordsChange(e.target.value)}
             placeholder={t.keywordsPlaceholder}
-            className="w-full bg-slate-950/80 border border-slate-800 focus:border-emerald-500/80 focus:ring-2 focus:ring-emerald-500/20 rounded-xl p-3.5 text-sm text-slate-200 placeholder-slate-500 transition resize-y leading-relaxed outline-none"
+            className="w-full flex-1 min-h-[150px] bg-slate-950/80 border border-slate-800 focus:border-emerald-500/80 focus:ring-2 focus:ring-emerald-500/20 rounded-xl p-3.5 text-sm text-slate-200 placeholder-slate-500 transition resize-y leading-relaxed outline-none"
           />
           <p className="text-[11px] text-slate-500">
             {t.keywordsHint}
           </p>
         </div>
       </div>
+
+      {/* C. IMAGE TO PROMPT (ANALISIS GAMBAR MENJADI PROMPT) */}
+      <ImageToPromptInput
+        apiKey={apiKey}
+        modelId={modelId}
+        samplePrompt={samplePrompt}
+        onApplyToSamplePrompt={onSamplePromptChange}
+      />
+
+      {/* Optional Reference Images Input (Multi-Image Subject Reference) */}
+      <ReferenceImageInput
+        images={referenceImages}
+        onChange={onReferenceImagesChange}
+      />
+
+      {/* Optional Outfit Reference Input (Per-Subject Dedicated Slots & Layering Control) */}
+      <OutfitReferenceInput
+        subjects={referenceImages}
+        outfitImages={outfitImages}
+        subjectOutfitConfigs={subjectOutfitConfigs}
+        onOutfitChange={onOutfitChange}
+        onOutfitRemove={onOutfitRemove}
+        onSubjectOutfitConfigChange={onSubjectOutfitConfigChange}
+      />
     </section>
   );
 };

@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
-import { Copy, Check, Sparkles, Trash2, CheckCheck } from 'lucide-react';
+import { Copy, Check, Sparkles, Trash2, CheckCheck, AlertCircle, CheckCircle2, Wrench } from 'lucide-react';
 import { PromptResult } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext';
 
 interface OutputSectionProps {
   results: PromptResult[];
   isLoading: boolean;
+  repairingCardIds?: Record<string, boolean>;
+  cardErrors?: Record<string, string>;
   onClearResults: () => void;
+  onRepairSinglePrompt?: (item: PromptResult) => void;
 }
 
 export const OutputSection: React.FC<OutputSectionProps> = ({
   results,
   isLoading,
+  repairingCardIds = {},
+  cardErrors = {},
   onClearResults,
+  onRepairSinglePrompt,
 }) => {
   const { t } = useLanguage();
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -75,7 +81,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           {results.length > 1 && (
             <button
               onClick={handleCopyAll}
@@ -111,6 +117,8 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
       <div className="space-y-4">
         {results.map((item) => {
           const isCopied = copiedId === item.id;
+          const isCardRepairing = Boolean(repairingCardIds[item.id]);
+          const cardError = cardErrors[item.id];
 
           return (
             <div
@@ -135,25 +143,89 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
                   }`}
-                  title={t.copyPromptBtn}
                 >
                   {isCopied ? (
                     <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{t.copiedBtn}</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{t.copyPromptBtn}</span>
-                </>
-              )}
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{t.copiedBtn}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{t.copyPromptBtn}</span>
+                    </>
+                  )}
                 </button>
               </div>
 
               <div className="bg-slate-900/50 rounded-lg p-3.5 border border-slate-800/60 font-sans text-sm text-slate-200 leading-relaxed select-text whitespace-pre-wrap">
                 {item.prompt}
               </div>
+
+              {/* Outfit Reference Fidelity Audit Status */}
+              {item.fidelityCheck && (item.fidelityCheck.hasOutfitReference || item.fidelityCheck.isTransparentMode) && (
+                <div className="pt-1">
+                  {item.fidelityCheck.warnings.length > 0 ? (
+                    <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-500/40 text-amber-200 text-xs space-y-2.5">
+                      <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>{t.outfitFidelityWarningTitle}</span>
+                      </div>
+                      <p className="text-[11px] text-amber-200/80 leading-normal">{t.outfitFidelityWarningDesc}</p>
+                      <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-300/90 pl-1">
+                        {item.fidelityCheck.warnings.map((w, wIdx) => (
+                          <li key={wIdx}>{w}</li>
+                        ))}
+                      </ul>
+
+                      {/* Individual Per-Card Repair Button */}
+                      <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-amber-500/20">
+                        <button
+                          type="button"
+                          onClick={() => onRepairSinglePrompt?.(item)}
+                          disabled={isCardRepairing}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg shadow-sm transition disabled:opacity-50 cursor-pointer"
+                          title={t.repairThisPromptBtn}
+                        >
+                          <Wrench className={`w-3.5 h-3.5 ${isCardRepairing ? 'animate-spin' : ''}`} />
+                          <span>{isCardRepairing ? t.repairingSingleBtn : t.repairThisPromptBtn}</span>
+                        </button>
+
+                        {cardError && (
+                          <span className="text-[11px] text-rose-300 font-medium">
+                            {cardError}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{t.outfitFidelityPassedTitle}</span>
+                        </div>
+                      </div>
+                      {item.fidelityCheck.passedChecks && item.fidelityCheck.passedChecks.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          {item.fidelityCheck.passedChecks.map((checkKey) => {
+                            const label = (t as Record<string, any>)[checkKey] || checkKey;
+                            return (
+                              <span
+                                key={checkKey}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-slate-900/90 border border-emerald-500/30 text-emerald-300/90 font-mono"
+                              >
+                                <Check className="w-2.5 h-2.5 text-emerald-400" />
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

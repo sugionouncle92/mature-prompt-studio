@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/verify-logic.mjs",
+    "android:sync": "npm run build && node scripts/sync-android-assets.js",
+    "android:apk:release": "cd android && gradlew.bat assembleRelease",
+    "package:apk": "node scripts/package-release-apk.js",
+    "build:release": "npm run build && node scripts/sync-android-assets.js && cd android && gradlew.bat assembleRelease && cd .. && node scripts/package-release-apk.js"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",

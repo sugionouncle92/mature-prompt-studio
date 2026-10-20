@@ -149,7 +149,7 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
       </div>
 
       {/* Style Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
         {filteredStyles.map((style) => {
           const isSelected = selection.selected.includes(style.name);
           const isUltra = style.isMandatoryUltra;
@@ -160,7 +160,7 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
               key={style.id}
               type="button"
               onClick={() => toggleStyle(style.name)}
-              className={`p-3 rounded-xl border text-left transition relative flex flex-col justify-between ${
+              className={`p-3.5 rounded-xl border text-left transition relative flex flex-col justify-between h-full ${
                 isSelected
                   ? isUltra
                     ? 'bg-amber-500/10 border-amber-500/60 shadow-sm shadow-amber-950/20'
@@ -168,9 +168,9 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
                   : 'bg-slate-950/40 border-slate-800 hover:border-slate-700'
               }`}
             >
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-1.5">
+              <div className="flex-1 flex flex-col">
+                <div className="flex items-center justify-between mb-1.5 gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-semibold text-slate-200">{style.name}</span>
                     {isUltra && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
@@ -180,7 +180,7 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
                     )}
                   </div>
                   <div
-                    className={`w-4 h-4 rounded flex items-center justify-center border transition ${
+                    className={`w-4 h-4 rounded flex items-center justify-center border transition shrink-0 ${
                       isSelected
                         ? isUltra
                           ? 'bg-amber-500 border-amber-500 text-slate-950 font-bold'
@@ -191,7 +191,7 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
                     {isSelected && <Check className="w-3 h-3" />}
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">
+                <p className="text-[11px] text-slate-400 leading-relaxed mt-auto">
                   {description}
                 </p>
               </div>

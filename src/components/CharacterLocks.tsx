@@ -2,75 +2,12 @@ import React from 'react';
 import { Lock, ShieldCheck, UserCheck, Check, Scale, Activity, Compass, Eye } from 'lucide-react';
 import { CharacterLocksState } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext';
+import { CHARACTER_LOCKS_CONFIG } from '../data/characterLocks.ts';
 
 interface CharacterLocksProps {
   locks: CharacterLocksState;
   onChange: (val: CharacterLocksState) => void;
 }
-
-interface LockMeta {
-  key: keyof CharacterLocksState;
-  tag: string;
-  name: string;
-}
-
-const LOCKS_CONFIG: LockMeta[] = [
-  {
-    key: 'facelock',
-    tag: '/facelock 100%',
-    name: 'Face Lock',
-  },
-  {
-    key: 'bodyshape',
-    tag: '/bodyshape_lock',
-    name: 'Body Shape Lock',
-  },
-  {
-    key: 'outfitlock',
-    tag: '/outfitlock',
-    name: 'Outfit Lock',
-  },
-  {
-    key: 'poselock',
-    tag: '/poselock',
-    name: 'Pose Lock',
-  },
-  {
-    key: 'agepreserve',
-    tag: '/agepreserve',
-    name: 'Age Preserve',
-  },
-  {
-    key: 'expressionlock',
-    tag: '/expressionlock',
-    name: 'Expression Lock',
-  },
-  {
-    key: 'hairlock',
-    tag: '/hairlock',
-    name: 'Hair Lock',
-  },
-  {
-    key: 'bodyproportionlock',
-    tag: '/bodyproportionlock',
-    name: 'Body Proportion Lock',
-  },
-  {
-    key: 'anatomylock',
-    tag: '/anatomylock',
-    name: 'Anatomy Lock',
-  },
-  {
-    key: 'poseconsistency',
-    tag: '/poseconsistency',
-    name: 'Pose Consistency Lock',
-  },
-  {
-    key: 'perspectivecorrection',
-    tag: '/perspectivecorrection',
-    name: 'Perspective Correction Lock',
-  },
-];
 
 export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange }) => {
   const { t } = useLanguage();
@@ -156,7 +93,7 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
 
       {/* Locks Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-stretch">
-        {LOCKS_CONFIG.map((item) => {
+        {CHARACTER_LOCKS_CONFIG.map((item) => {
           const isActive = locks[item.key];
           const description = t.locksDesc[item.key];
 

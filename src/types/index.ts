@@ -102,6 +102,7 @@ export interface PromptResult {
   id: string;
   index: number;
   prompt: string;
+  activeLocks?: string[];
   fidelityCheck?: OutfitFidelityCheck;
 }
 

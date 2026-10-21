@@ -32,6 +32,13 @@ import {
   resolveAutoFraming,
   getFramingOptionByIdOrName,
 } from '../src/data/framingOptions.ts';
+import {
+  CHARACTER_LOCKS_CONFIG,
+  REGISTERED_ADDITIONAL_SHORTHANDS,
+  getActiveLockTags,
+  integrateActiveShorthandsIntoPrompt,
+  buildDeduplicatedLockDirectives,
+} from '../src/data/characterLocks.ts';
 
 console.log('--- STARTING VERIFICATION TEST SUITE ---');
 
@@ -1386,7 +1393,122 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
 
   console.log('✓ Photographic Style "Nyata" verified: Catalog, i18n, prompt integration, coexistence, and clean isolation.');
 
-  console.log('\n--- ALL TEST SUITE CHECKS PASSED SUCCESSFULLY (13/13) ---');
+  // 14. Verify Shorthand System Centralization, Active Locks Integration, Deduplication, and Isolation
+  console.log('Test 14: Verify Shorthand System Centralization, Active Locks Integration, Deduplication, and Isolation...');
+
+  // 14a. Centralized Catalog Verification
+  assert.strictEqual(CHARACTER_LOCKS_CONFIG.length, 11, 'CHARACTER_LOCKS_CONFIG must contain exactly 11 core locks');
+  const expectedLockKeys = [
+    'facelock', 'bodyshape', 'outfitlock', 'poselock', 'agepreserve',
+    'expressionlock', 'hairlock', 'bodyproportionlock', 'anatomylock',
+    'poseconsistency', 'perspectivecorrection'
+  ];
+  for (const key of expectedLockKeys) {
+    const item = CHARACTER_LOCKS_CONFIG.find(l => l.key === key);
+    assert.ok(item, `Lock key "${key}" must exist in CHARACTER_LOCKS_CONFIG`);
+    assert.ok(item.tag.startsWith('/'), `Lock "${key}" tag must start with /`);
+    assert.ok(item.name && item.name.length > 2, `Lock "${key}" must have a valid name`);
+    assert.ok(item.promptInstruction && item.promptInstruction.length > 10, `Lock "${key}" must have a prompt instruction`);
+    assert.ok(item.descriptionId && item.descriptionId.length > 10, `Lock "${key}" must have Indonesian description`);
+    assert.ok(item.descriptionEn && item.descriptionEn.length > 10, `Lock "${key}" must have English description`);
+  }
+
+  // 14b. Registered Additional Shorthands
+  assert.strictEqual(REGISTERED_ADDITIONAL_SHORTHANDS.length, 8, 'Must have 8 registered additional shorthands');
+  const additionalTags = REGISTERED_ADDITIONAL_SHORTHANDS.map(s => s.tag);
+  assert.ok(additionalTags.includes('/identitylock'));
+  assert.ok(additionalTags.includes('/master-face-lock'));
+  assert.ok(additionalTags.includes('/photorealism'));
+  assert.ok(additionalTags.includes('/natural-skin-texture'));
+
+  // 14c. Active vs Inactive Shorthands: Only 1 Lock Active
+  const singleLockState = {
+    ...DEFAULT_CHARACTER_LOCKS,
+    facelock: true,
+    bodyshape: false,
+    outfitlock: false,
+    poselock: false,
+    agepreserve: false,
+    expressionlock: false,
+    hairlock: false,
+    bodyproportionlock: false,
+    anatomylock: false,
+    poseconsistency: false,
+    perspectivecorrection: false,
+  };
+  const activeTagsSingle = getActiveLockTags(singleLockState);
+  assert.deepStrictEqual(activeTagsSingle, ['/facelock 100%']);
+
+  const promptSingle = integrateActiveShorthandsIntoPrompt('A woman walking in the park --ar 9:16', singleLockState);
+  assert.ok(promptSingle.includes('Face Lock:'), 'Must include Face Lock directive');
+  assert.ok(!promptSingle.includes('Body Shape Lock:'), 'Must not include inactive Body Shape Lock');
+  assert.ok(!promptSingle.includes('Outfit Lock:'), 'Must not include inactive Outfit Lock');
+  assert.ok(promptSingle.endsWith('--ar 9:16'), 'Must preserve trailing --ar parameter at the very end');
+
+  // 14d. Entirely Inactive Shorthands: Zero Locks Active
+  const allInactiveState = {
+    facelock: false,
+    bodyshape: false,
+    outfitlock: false,
+    poselock: false,
+    agepreserve: false,
+    expressionlock: false,
+    hairlock: false,
+    bodyproportionlock: false,
+    anatomylock: false,
+    poseconsistency: false,
+    perspectivecorrection: false,
+  };
+  const activeTagsNone = getActiveLockTags(allInactiveState);
+  assert.deepStrictEqual(activeTagsNone, []);
+
+  const promptNone = integrateActiveShorthandsIntoPrompt('A serene mountain landscape --ar 16:9', allInactiveState);
+  assert.strictEqual(promptNone, 'A serene mountain landscape --ar 16:9', 'Prompt must remain untouched when all locks are inactive');
+
+  // 14e. Deduplication of Overlapping Shorthands
+  // (i) bodyshape + bodyproportionlock
+  const bodyOverlapState = {
+    ...allInactiveState,
+    bodyshape: true,
+    bodyproportionlock: true,
+  };
+  const bodyDirectives = buildDeduplicatedLockDirectives(bodyOverlapState);
+  assert.strictEqual(bodyDirectives.length, 1, 'bodyshape + bodyproportionlock must be deduplicated into 1 unified directive');
+  assert.ok(bodyDirectives[0].includes('Body & Proportion Lock:'));
+
+  // (ii) poselock + poseconsistency
+  const poseOverlapState = {
+    ...allInactiveState,
+    poselock: true,
+    poseconsistency: true,
+  };
+  const poseDirectives = buildDeduplicatedLockDirectives(poseOverlapState);
+  assert.strictEqual(poseDirectives.length, 1, 'poselock + poseconsistency must be deduplicated into 1 unified directive');
+  assert.ok(poseDirectives[0].includes('Pose Lock & Consistency:'));
+
+  // (iii) facelock + Nyata identitylock
+  const faceNyataOverlap = buildDeduplicatedLockDirectives({ ...allInactiveState, facelock: true }, true);
+  assert.strictEqual(faceNyataOverlap.length, 1, 'facelock + Nyata identity must merge harmoniously without duplication');
+  assert.ok(faceNyataOverlap[0].includes('Face Identity Lock:'));
+
+  // 14f. Dynamic Output Formatting & No Redundant Sentence Injection
+  const mockBasePrompt = 'Vivid portrait of an elegant woman, soft candlelight --ar 9:16';
+  const integratedPrompt = integrateActiveShorthandsIntoPrompt(mockBasePrompt, DEFAULT_CHARACTER_LOCKS);
+  // Repeat integration to verify idempotence (no duplicate sentences)
+  const reIntegratedPrompt = integrateActiveShorthandsIntoPrompt(integratedPrompt, DEFAULT_CHARACTER_LOCKS);
+  assert.strictEqual(reIntegratedPrompt, integratedPrompt, 'Re-integration must be idempotent and avoid duplicated sentences');
+
+  // 14g. UI Components Check: OutputSection displays Active Shorthands & Edit capability
+  const outputSectionSrc = fs.readFileSync('src/components/OutputSection.tsx', 'utf8');
+  assert.ok(outputSectionSrc.includes('item.activeLocks'), 'OutputSection must inspect item.activeLocks');
+  assert.ok(outputSectionSrc.includes('activeCharacterLocksLabel'), 'OutputSection must display activeCharacterLocksLabel');
+  assert.ok(outputSectionSrc.includes('noActiveLocksNotice'), 'OutputSection must handle no active locks gracefully');
+  assert.ok(outputSectionSrc.includes('handleStartEdit'), 'OutputSection must provide inline editing functionality');
+  assert.ok(outputSectionSrc.includes('onUpdatePrompt'), 'OutputSection must support onUpdatePrompt callback');
+
+  console.log('✓ Shorthand System Centralization, Active Locks Integration, Deduplication, and Isolation verified.');
+
+  console.log('\n--- ALL TEST SUITE CHECKS PASSED SUCCESSFULLY (14/14) ---');
 }).catch((err) => {
   console.error('Test failed:', err);
   process.exit(1);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, Sparkles, Trash2, CheckCheck, AlertCircle, CheckCircle2, Wrench } from 'lucide-react';
+import { Copy, Check, Sparkles, Trash2, CheckCheck, AlertCircle, CheckCircle2, Wrench, Edit3, X } from 'lucide-react';
 import { PromptResult } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -10,6 +10,7 @@ interface OutputSectionProps {
   cardErrors?: Record<string, string>;
   onClearResults: () => void;
   onRepairSinglePrompt?: (item: PromptResult) => void;
+  onUpdatePrompt?: (id: string, updatedPrompt: string) => void;
 }
 
 export const OutputSection: React.FC<OutputSectionProps> = ({
@@ -19,10 +20,30 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
   cardErrors = {},
   onClearResults,
   onRepairSinglePrompt,
+  onUpdatePrompt,
 }) => {
   const { t } = useLanguage();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editText, setEditText] = useState<string>('');
+
+  const handleStartEdit = (item: PromptResult) => {
+    setEditingCardId(item.id);
+    setEditText(item.prompt);
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (onUpdatePrompt && editText.trim()) {
+      onUpdatePrompt(id, editText.trim());
+    }
+    setEditingCardId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCardId(null);
+    setEditText('');
+  };
 
   const handleCopySingle = async (item: PromptResult) => {
     try {
@@ -119,6 +140,7 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
           const isCopied = copiedId === item.id;
           const isCardRepairing = Boolean(repairingCardIds[item.id]);
           const cardError = cardErrors[item.id];
+          const isEditing = editingCardId === item.id;
 
           return (
             <div
@@ -131,36 +153,109 @@ export const OutputSection: React.FC<OutputSectionProps> = ({
                     {t.variationCardLabel} {item.index}
                   </span>
                   <span className="text-[11px] text-slate-500 font-mono">
-                    {item.prompt.length} {t.charsCount}
+                    {(isEditing ? editText.length : item.prompt.length)} {t.charsCount}
                   </span>
+                  {isEditing && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {t.editingPromptBadge}
+                    </span>
+                  )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleCopySingle(item)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    isCopied
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                  }`}
-                >
-                  {isCopied ? (
+                <div className="flex items-center gap-1.5">
+                  {isEditing ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{t.copiedBtn}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(item.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{t.savePromptBtn}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>{t.cancelPromptBtn}</span>
+                      </button>
                     </>
                   ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t.copyPromptBtn}</span>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(item)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+                      title={t.editPromptBtn}
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{t.editPromptBtn}</span>
+                    </button>
                   )}
-                </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopySingle(item)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                      isCopied
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                    }`}
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>{t.copiedBtn}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{t.copyPromptBtn}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
-              <div className="bg-slate-900/50 rounded-lg p-3.5 border border-slate-800/60 font-sans text-sm text-slate-200 leading-relaxed select-text whitespace-pre-wrap">
-                {item.prompt}
+              {/* Active Character Locks Badges */}
+              <div className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-800/80 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                  {t.activeCharacterLocksLabel}:
+                </span>
+                {item.activeLocks && item.activeLocks.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {item.activeLocks.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-rose-950/40 text-amber-300 border border-rose-500/30"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-slate-500 italic">
+                    {t.noActiveLocksNotice}
+                  </span>
+                )}
               </div>
+
+              {/* Final Prompt Display or Inline Editor */}
+              {isEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    rows={6}
+                    className="w-full bg-slate-900/90 border border-amber-500/50 focus:border-amber-400 rounded-lg p-3 text-sm text-slate-100 font-sans leading-relaxed focus:outline-none focus:ring-1 focus:ring-amber-500/30 resize-y"
+                  />
+                </div>
+              ) : (
+                <div className="bg-slate-900/50 rounded-lg p-3.5 border border-slate-800/60 font-sans text-sm text-slate-200 leading-relaxed select-text whitespace-pre-wrap">
+                  {item.prompt}
+                </div>
+              )}
 
               {/* Outfit Reference Fidelity Audit Status */}
               {item.fidelityCheck && (item.fidelityCheck.hasOutfitReference || item.fidelityCheck.isTransparentMode) && (

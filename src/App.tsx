@@ -398,6 +398,12 @@ const StudioContent: React.FC = () => {
     }
   };
 
+  const handleUpdatePrompt = (id: string, updatedPrompt: string) => {
+    setResults((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, prompt: updatedPrompt } : r))
+    );
+  };
+
   const handleRepairSinglePrompt = async (item: PromptResult) => {
     if (repairingCardIds[item.id]) return;
 
@@ -573,6 +579,7 @@ const StudioContent: React.FC = () => {
               setCardErrors({});
             }}
             onRepairSinglePrompt={handleRepairSinglePrompt}
+            onUpdatePrompt={handleUpdatePrompt}
           />
         </div>
       </main>

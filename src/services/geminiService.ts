@@ -15,6 +15,11 @@ import {
   NYATA_STYLE_CONFIG,
   NYATA_PROMPT_DIRECTIVE,
 } from '../data/photographicStyles.ts';
+import {
+  CHARACTER_LOCKS_CONFIG,
+  getActiveLockTags,
+  integrateActiveShorthandsIntoPrompt,
+} from '../data/characterLocks.ts';
 
 export interface ModelValidationResult {
   valid: boolean;
@@ -316,10 +321,20 @@ export class GeminiService {
       GeminiService.applyAspectRatio(p, input.selectedAspectRatio)
     );
 
-    return finalizedPrompts.map((p, idx) => ({
+    // 3. Deterministically integrate expanded active shorthand instructions into 100% of prompt variations
+    const isNyata = input.photographicStyle.selected.includes('nyata') || 
+                    input.photographicStyle.selected.includes('Nyata');
+    const withShorthandsPrompts = finalizedPrompts.map((p) =>
+      integrateActiveShorthandsIntoPrompt(p, input.characterLocks, isNyata)
+    );
+
+    const activeLockTags = getActiveLockTags(input.characterLocks);
+
+    return withShorthandsPrompts.map((p, idx) => ({
       id: `prompt-${Date.now()}-${idx}`,
       index: idx + 1,
       prompt: p,
+      activeLocks: activeLockTags,
       fidelityCheck: GeminiService.validateOutfitFidelity(p, input),
     }));
   }
@@ -426,8 +441,11 @@ RULES:
       repairedPromptText = `${repairedPromptText.replace(/\s*--ar\s+.*$/i, '')}, sheer transparent mesh fabric with unlined delicate tailored seams and natural body drape ${input.selectedAspectRatio && input.selectedAspectRatio !== 'auto' ? `--ar ${input.selectedAspectRatio}` : ''}`.trim();
     }
 
-    // Re-apply aspect ratio
+    // Re-apply aspect ratio and shorthand constraints
     repairedPromptText = GeminiService.applyAspectRatio(repairedPromptText, input.selectedAspectRatio);
+    const isNyataRepair = input.photographicStyle.selected.includes('nyata') || 
+                          input.photographicStyle.selected.includes('Nyata');
+    repairedPromptText = integrateActiveShorthandsIntoPrompt(repairedPromptText, input.characterLocks, isNyataRepair);
 
     // 3. Re-validate repaired prompt
     const newFidelityCheck = GeminiService.validateOutfitFidelity(repairedPromptText, input);
@@ -435,6 +453,7 @@ RULES:
     return {
       ...item,
       prompt: repairedPromptText,
+      activeLocks: item.activeLocks || getActiveLockTags(input.characterLocks),
       fidelityCheck: newFidelityCheck,
     };
   }
@@ -1111,18 +1130,14 @@ VARIATIONS DIVERSITY:
   }
 
   private buildLocksInstruction(locks: GenerationInput['characterLocks']): string {
-    const active: string[] = [];
-    if (locks.facelock) active.push("- /facelock 100%: Strictly preserve the facial identity, facial bone structure, and distinctive facial features from the sample prompt.");
-    if (locks.bodyshape) active.push("- /bodyshape_lock (/bodyshape lock): Strictly maintain the exact body shape, build, and physical proportions.");
-    if (locks.outfitlock) active.push("- /outfitlock: Strictly keep the exact clothing style, fabric type, colors, and garment details.");
-    if (locks.poselock) active.push("- /poselock: Strictly retain the primary body pose and physical stance without drastic alteration.");
-    if (locks.agepreserve) active.push("- /agepreserve: Strictly preserve the adult age (clearly 25+ years old), maintaining authentic mature maturity.");
-    if (locks.expressionlock) active.push("- /expressionlock: Strictly preserve the exact core facial expression.");
-    if (locks.hairlock) active.push("- /hairlock: Strictly maintain the exact hairstyle, length, texture, and color.");
-    if (locks.bodyproportionlock) active.push("- /bodyproportionlock: Preserve consistent natural body proportions, limb lengths, torso-to-leg ratio, and overall physical proportions.");
-    if (locks.anatomylock) active.push("- /anatomylock: Maintain anatomically plausible human structure, correctly formed limbs and joints, and natural hand and foot anatomy.");
-    if (locks.poseconsistency) active.push("- /poseconsistency: Preserve the specified reference pose, body orientation, limb placement, and spatial relationships.");
-    if (locks.perspectivecorrection) active.push("- /perspectivecorrection: Maintain coherent camera perspective and natural relative proportions without unintended perspective distortion, while fully honoring requested creative camera angles.");
+    const active = CHARACTER_LOCKS_CONFIG
+      .filter((item) => Boolean(locks[item.key]))
+      .map((item) => {
+        if (item.key === 'bodyshape') {
+          return `- /bodyshape_lock (/bodyshape lock): ${item.promptInstruction}`;
+        }
+        return `- ${item.tag}: ${item.promptInstruction}`;
+      });
 
     if (active.length === 0) {
       return "No character locks active. Subtle natural variations in pose, clothing, and expression are permitted.";
@@ -1253,18 +1268,7 @@ VARIATIONS DIVERSITY:
     }
 
     // Active Locks
-    const activeLockTags: string[] = [];
-    if (input.characterLocks.facelock) activeLockTags.push('/facelock 100%');
-    if (input.characterLocks.bodyshape) activeLockTags.push('/bodyshape_lock');
-    if (input.characterLocks.outfitlock) activeLockTags.push('/outfitlock');
-    if (input.characterLocks.poselock) activeLockTags.push('/poselock');
-    if (input.characterLocks.agepreserve) activeLockTags.push('/agepreserve');
-    if (input.characterLocks.expressionlock) activeLockTags.push('/expressionlock');
-    if (input.characterLocks.hairlock) activeLockTags.push('/hairlock');
-    if (input.characterLocks.bodyproportionlock) activeLockTags.push('/bodyproportionlock');
-    if (input.characterLocks.anatomylock) activeLockTags.push('/anatomylock');
-    if (input.characterLocks.poseconsistency) activeLockTags.push('/poseconsistency');
-    if (input.characterLocks.perspectivecorrection) activeLockTags.push('/perspectivecorrection');
+    const activeLockTags = getActiveLockTags(input.characterLocks);
 
     if (activeLockTags.length > 0) {
       parts.push(`\n[ACTIVE CHARACTER LOCKS - HARD CONSTRAINTS]:\n${activeLockTags.join(' ')}\nEnforce these locks strictly. Append the active lock flags to the prompt only if helpful for external generator tags, but above all integrate their hard constraints into the visual scene description.`);

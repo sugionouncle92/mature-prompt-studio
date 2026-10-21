@@ -20,6 +20,9 @@ import {
   PHOTOGRAPHIC_STYLES,
   NYATA_STYLE_CONFIG,
   NYATA_PROMPT_DIRECTIVE,
+  DEFAULT_PHOTOGRAPHIC_STYLES,
+  getActivePhotographicShorthands,
+  getActivePhotographicDirectives,
 } from '../src/data/photographicStyles.ts';
 import { GeminiService } from '../src/services/geminiService.ts';
 import { translations } from '../src/i18n/translations.ts';
@@ -1233,7 +1236,7 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
     assert.ok(translations.en.locksDesc[k].length > 30, `Description for ${k} in EN is too short`);
   }
 
-  // 11b. Verify Default State (9 active, poselock & expressionlock OFF, all 11 retained)
+  // 11b. Verify Default State (12 active, poselock & expressionlock OFF, all 14 retained)
   const defaultLocks = DEFAULT_CHARACTER_LOCKS;
 
   assert.strictEqual(defaultLocks.facelock, true, '/facelock must be ON by default');
@@ -1247,10 +1250,13 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
   assert.strictEqual(defaultLocks.anatomylock, true, '/anatomylock must be ON by default');
   assert.strictEqual(defaultLocks.poseconsistency, true, '/poseconsistency must be ON by default');
   assert.strictEqual(defaultLocks.perspectivecorrection, true, '/perspectivecorrection must be ON by default');
+  assert.strictEqual(defaultLocks.identitylock, true, '/identitylock must be ON by default');
+  assert.strictEqual(defaultLocks.referencepriority, true, '/referencepriority must be ON by default');
+  assert.strictEqual(defaultLocks.facialconsistency, true, '/facial-consistency must be ON by default');
 
   // Total active in default state
   const defaultActiveCount = Object.values(defaultLocks).filter(Boolean).length;
-  assert.strictEqual(defaultActiveCount, 9, 'Default configuration must have exactly 9 active locks (poselock & expressionlock retained but OFF)');
+  assert.strictEqual(defaultActiveCount, 12, 'Default configuration must have exactly 12 active locks (poselock & expressionlock retained but OFF, 3 new locks ON)');
 
   // 11c. Verify System Instruction & User Prompt Builder with new locks
   const service = GeminiService.getInstance();
@@ -1397,11 +1403,11 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
   console.log('Test 14: Verify Shorthand System Centralization, Active Locks Integration, Deduplication, and Isolation...');
 
   // 14a. Centralized Catalog Verification
-  assert.strictEqual(CHARACTER_LOCKS_CONFIG.length, 11, 'CHARACTER_LOCKS_CONFIG must contain exactly 11 core locks');
+  assert.strictEqual(CHARACTER_LOCKS_CONFIG.length, 14, 'CHARACTER_LOCKS_CONFIG must contain exactly 14 core locks');
   const expectedLockKeys = [
     'facelock', 'bodyshape', 'outfitlock', 'poselock', 'agepreserve',
     'expressionlock', 'hairlock', 'bodyproportionlock', 'anatomylock',
-    'poseconsistency', 'perspectivecorrection'
+    'poseconsistency', 'perspectivecorrection', 'identitylock', 'referencepriority', 'facialconsistency'
   ];
   for (const key of expectedLockKeys) {
     const item = CHARACTER_LOCKS_CONFIG.find(l => l.key === key);
@@ -1435,6 +1441,9 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
     anatomylock: false,
     poseconsistency: false,
     perspectivecorrection: false,
+    identitylock: false,
+    referencepriority: false,
+    facialconsistency: false,
   };
   const activeTagsSingle = getActiveLockTags(singleLockState);
   assert.deepStrictEqual(activeTagsSingle, ['/facelock 100%']);
@@ -1458,6 +1467,9 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
     anatomylock: false,
     poseconsistency: false,
     perspectivecorrection: false,
+    identitylock: false,
+    referencepriority: false,
+    facialconsistency: false,
   };
   const activeTagsNone = getActiveLockTags(allInactiveState);
   assert.deepStrictEqual(activeTagsNone, []);
@@ -1508,7 +1520,115 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
 
   console.log('✓ Shorthand System Centralization, Active Locks Integration, Deduplication, and Isolation verified.');
 
-  console.log('\n--- ALL TEST SUITE CHECKS PASSED SUCCESSFULLY (14/14) ---');
+  // 15. Verify 7 New Shorthands with DEFAULT ON (/identitylock, /referencepriority, /facial-consistency, /photorealism, /maximum-detail, /natural-skin-texture, /anti-ai-artifacts)
+  console.log('Test 15: Verify 7 New Shorthands with DEFAULT ON...');
+
+  // 15a. Location A: Character Locks 3 New Shorthands
+  const charLockKeys = ['identitylock', 'referencepriority', 'facialconsistency'];
+  for (const k of charLockKeys) {
+    const item = CHARACTER_LOCKS_CONFIG.find(l => l.key === k);
+    assert.ok(item, `Character Locks catalog must include new lock "${k}"`);
+    assert.ok(item.tag.startsWith('/'), `Lock "${k}" tag must start with /`);
+    assert.ok(item.name.length > 0, `Lock "${k}" must have a name`);
+    assert.ok(item.descriptionId.length > 20, `Lock "${k}" must have Indonesian description`);
+    assert.ok(item.promptInstruction.length > 20, `Lock "${k}" must have prompt directive`);
+    assert.strictEqual(DEFAULT_CHARACTER_LOCKS[k], true, `New character lock "${k}" must be DEFAULT ON (true)`);
+  }
+
+  // 15b. Location B: Photographic Style 4 New Shorthands
+  const photoShorthandIds = ['photorealism', 'maximum-detail', 'natural-skin-texture', 'anti-ai-artifacts'];
+  for (const id of photoShorthandIds) {
+    const item = PHOTOGRAPHIC_STYLES.find(s => s.id === id);
+    assert.ok(item, `Photographic Styles catalog must include new style "${id}"`);
+    assert.ok(item.shorthand && item.shorthand.startsWith('/'), `Style "${id}" shorthand must start with /`);
+    assert.ok(item.name.length > 0, `Style "${id}" must have a name`);
+    assert.ok(item.description.length > 20, `Style "${id}" must have description`);
+    assert.ok(item.promptDirective && item.promptDirective.length > 20, `Style "${id}" must have prompt directive`);
+    assert.ok(DEFAULT_PHOTOGRAPHIC_STYLES.includes(item.name), `Style "${item.name}" must be in DEFAULT_PHOTOGRAPHIC_STYLES`);
+  }
+
+  // Legacy 'Ultra Realistic' is preserved in default styles
+  assert.ok(DEFAULT_PHOTOGRAPHIC_STYLES.includes('Ultra Realistic'), 'DEFAULT_PHOTOGRAPHIC_STYLES must retain Ultra Realistic');
+  assert.strictEqual(DEFAULT_PHOTOGRAPHIC_STYLES.length, 5, 'DEFAULT_PHOTOGRAPHIC_STYLES must have 5 items (Ultra Realistic + 4 new shorthands)');
+
+  // 15c. Independent Toggleability & Persistence
+  // Can turn off identitylock and photorealism independently
+  const toggledLocks = {
+    ...DEFAULT_CHARACTER_LOCKS,
+    identitylock: false,
+  };
+  assert.strictEqual(toggledLocks.identitylock, false);
+  assert.strictEqual(toggledLocks.referencepriority, true);
+  assert.strictEqual(toggledLocks.facialconsistency, true);
+
+  const toggledPhotoStyles = DEFAULT_PHOTOGRAPHIC_STYLES.filter(s => s !== 'Photorealism');
+  assert.ok(!toggledPhotoStyles.includes('Photorealism'));
+  assert.ok(toggledPhotoStyles.includes('Maximum Detail'));
+
+  // 15d. Active Photographic Shorthand Tags Helper
+  const activePhotoTags = getActivePhotographicShorthands(DEFAULT_PHOTOGRAPHIC_STYLES);
+  assert.strictEqual(activePhotoTags.length, 4, 'Must return all 4 active shorthand tags for DEFAULT_PHOTOGRAPHIC_STYLES');
+  assert.ok(activePhotoTags.includes('/photorealism'));
+  assert.ok(activePhotoTags.includes('/maximum-detail'));
+  assert.ok(activePhotoTags.includes('/natural-skin-texture'));
+  assert.ok(activePhotoTags.includes('/anti-ai-artifacts'));
+
+  // 15e. Integration into Prompt with all 7 new shorthands active
+  const baseScenePrompt = 'A sophisticated woman in a silk trench coat walking through morning mist in Kyoto --ar 9:16';
+  const fullIntegratedPrompt = integrateActiveShorthandsIntoPrompt(baseScenePrompt, DEFAULT_CHARACTER_LOCKS, {
+    photoStyles: DEFAULT_PHOTOGRAPHIC_STYLES,
+    hasFaceReference: true,
+  });
+
+  // Verify presence of directives
+  assert.ok(fullIntegratedPrompt.includes('Face Identity Lock:'), 'Must include unified face identity directive');
+  assert.ok(fullIntegratedPrompt.includes('Reference Priority:'), 'Must include reference priority directive');
+  assert.ok(fullIntegratedPrompt.includes('Photorealism:'), 'Must include photorealism directive');
+  assert.ok(fullIntegratedPrompt.includes('Natural Skin Texture:'), 'Must include natural skin texture directive');
+  assert.ok(fullIntegratedPrompt.includes('Maximum Detail:'), 'Must include maximum detail directive');
+  assert.ok(fullIntegratedPrompt.includes('Anti-AI Artifacts:'), 'Must include anti-ai artifacts directive');
+  assert.ok(fullIntegratedPrompt.endsWith('--ar 9:16'), 'Trailing --ar 9:16 must be preserved at the end');
+
+  // 15f. Deduplication when Nyata is selected alongside new photographic styles
+  const promptWithNyataAndNew = integrateActiveShorthandsIntoPrompt(baseScenePrompt, DEFAULT_CHARACTER_LOCKS, {
+    isNyata: true,
+    photoStyles: DEFAULT_PHOTOGRAPHIC_STYLES,
+    hasFaceReference: true,
+  });
+  // Since Nyata already provides photorealism and skin texture, redundant standalones are omitted
+  const photorealismCount = (promptWithNyataAndNew.match(/Photorealism:/g) || []).length;
+  assert.strictEqual(photorealismCount, 0, 'Standalone Photorealism directive should not duplicate when Nyata is active');
+  assert.ok(promptWithNyataAndNew.includes('Maximum Detail:'), 'Maximum Detail remains active even with Nyata');
+
+  // 15g. Non-photographic style respect (Anime/Manga does not force photorealism)
+  const animePrompt = integrateActiveShorthandsIntoPrompt('Anime heroine in magical forest --ar 1:1', DEFAULT_CHARACTER_LOCKS, {
+    photoStyles: DEFAULT_PHOTOGRAPHIC_STYLES,
+    storyStyle: 'Anime & Manga Style',
+    hasFaceReference: false,
+  });
+  assert.ok(!animePrompt.includes('Photorealism:'), 'Must not force Photorealism onto explicit Anime style');
+  assert.ok(!animePrompt.includes('Natural Skin Texture:'), 'Must not force photographic skin pores onto Anime style');
+
+  // 15h. Grounding without face reference (does not claim uploaded photo reference exists)
+  const noRefPrompt = integrateActiveShorthandsIntoPrompt('Portrait of an astronaut on Mars --ar 16:9', DEFAULT_CHARACTER_LOCKS, {
+    hasFaceReference: false,
+  });
+  assert.ok(!noRefPrompt.includes('reference photo and prompt'), 'Must not claim reference photo exists when none provided');
+  assert.ok(noRefPrompt.includes('throughout the scene'), 'Must ground identity throughout the scene without hallucinating photo reference');
+
+  // 15i. Verify UI Reset Buttons in CharacterLocks and PhotographicStyleSelector
+  const charLocksSrc = fs.readFileSync('src/components/CharacterLocks.tsx', 'utf8');
+  assert.ok(charLocksSrc.includes('handleResetDefault'), 'CharacterLocks must provide handleResetDefault');
+  assert.ok(charLocksSrc.includes('DEFAULT_CHARACTER_LOCKS'), 'CharacterLocks must reset to DEFAULT_CHARACTER_LOCKS');
+
+  const photoStyleSelectorSrc = fs.readFileSync('src/components/PhotographicStyleSelector.tsx', 'utf8');
+  assert.ok(photoStyleSelectorSrc.includes('handleResetDefault'), 'PhotographicStyleSelector must provide handleResetDefault');
+  assert.ok(photoStyleSelectorSrc.includes('DEFAULT_PHOTOGRAPHIC_STYLES'), 'PhotographicStyleSelector must reset to DEFAULT_PHOTOGRAPHIC_STYLES');
+  assert.ok(photoStyleSelectorSrc.includes('style.shorthand'), 'PhotographicStyleSelector must render style.shorthand badge');
+
+  console.log('✓ All 7 new shorthands (/identitylock, /referencepriority, /facial-consistency, /photorealism, /maximum-detail, /natural-skin-texture, /anti-ai-artifacts) verified with DEFAULT ON, independent toggle, prompt integration, deduplication, and non-photo/no-ref safety.');
+
+  console.log('\n--- ALL TEST SUITE CHECKS PASSED SUCCESSFULLY (15/15) ---');
 }).catch((err) => {
   console.error('Test failed:', err);
   process.exit(1);

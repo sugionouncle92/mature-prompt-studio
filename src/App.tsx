@@ -33,6 +33,7 @@ import {
 } from './types/index.ts';
 import { GeminiService } from './services/geminiService.ts';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { DEFAULT_PHOTOGRAPHIC_STYLES } from './data/photographicStyles.ts';
 
 const STORAGE_KEY_API = 'mature_prompt_studio_api_key';
 const STORAGE_KEY_MODEL = 'mature_prompt_studio_model_id';
@@ -42,6 +43,7 @@ const STORAGE_KEY_SUBJECT_OUTFIT_CONFIGS = 'mature_prompt_studio_subject_outfit_
 const STORAGE_KEY_FRAMING_CONFIG = 'mature_prompt_studio_framing_config_v2';
 const STORAGE_KEY_ASPECT_RATIO = 'mature_prompt_studio_aspect_ratio_v2';
 const STORAGE_KEY_CHARACTER_LOCKS = 'mature_prompt_studio_character_locks_v3';
+const STORAGE_KEY_PHOTOGRAPHIC_STYLE = 'mature_prompt_studio_photographic_style_v2';
 
 const StudioContent: React.FC = () => {
   const { t, language } = useLanguage();
@@ -121,10 +123,34 @@ const StudioContent: React.FC = () => {
     matureIntensity: 'Soft',
   });
 
-  const [photographicStyle, setPhotographicStyle] = useState<PhotographicStyleSelection>({
-    selected: ['Ultra Realistic'],
-    custom: '',
+  const [photographicStyle, setPhotographicStyle] = useState<PhotographicStyleSelection>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PHOTOGRAPHIC_STYLE);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.selected)) {
+          return {
+            selected: parsed.selected,
+            custom: typeof parsed.custom === 'string' ? parsed.custom : '',
+          };
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return {
+      selected: [...DEFAULT_PHOTOGRAPHIC_STYLES],
+      custom: '',
+    };
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_PHOTOGRAPHIC_STYLE, JSON.stringify(photographicStyle));
+    } catch {
+      // ignore
+    }
+  }, [photographicStyle]);
 
   // Locks (4 new locks default to true)
   const [characterLocks, setCharacterLocks] = useState<CharacterLocksState>(() => {

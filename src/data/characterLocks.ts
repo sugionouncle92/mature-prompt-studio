@@ -158,6 +158,42 @@ export const CHARACTER_LOCKS_CONFIG: CharacterLockItem[] = [
     requiresReference: false,
     compatibilityGroup: 'perspective-integrity',
   },
+  {
+    key: 'identitylock',
+    tag: '/identitylock',
+    name: 'Identity Lock',
+    category: 'identity',
+    descriptionId: 'Mempertahankan identitas wajah berdasarkan foto referensi, termasuk proporsi wajah, bentuk mata, hidung, bibir, rahang, warna kulit, garis rambut, dan ciri khas subjek.',
+    descriptionEn: 'Preserves facial identity based on reference photo, including facial proportions, eye shape, nose, lips, jawline, skin tone, hairline, and unique characteristics.',
+    promptInstruction: 'Identity Lock: Strictly preserve subject facial identity based on the reference photo, including facial proportions, eye shape, nose, lips, jawline, skin tone, hairline, and unique facial characteristics.',
+    promptInstructionId: 'Identity Lock: Mempertahankan identitas wajah berdasarkan foto referensi, proporsi wajah, bentuk mata, hidung, bibir, rahang, warna kulit, dan garis rambut.',
+    requiresReference: true,
+    compatibilityGroup: 'face-identity',
+  },
+  {
+    key: 'referencepriority',
+    tag: '/referencepriority',
+    name: 'Reference Priority',
+    category: 'identity',
+    descriptionId: 'Memprioritaskan karakteristik visual yang relevan pada gambar referensi dibandingkan deskripsi teks umum yang bertentangan dengannya.',
+    descriptionEn: 'Prioritizes relevant visual characteristics in the reference image over conflicting generic text descriptions.',
+    promptInstruction: 'Reference Priority: Prioritize relevant visual characteristics in the reference image over conflicting generic text descriptions.',
+    promptInstructionId: 'Reference Priority: Memprioritaskan karakteristik visual yang relevan pada gambar referensi dibandingkan deskripsi teks umum yang bertentangan dengannya.',
+    requiresReference: true,
+    compatibilityGroup: 'reference-priority',
+  },
+  {
+    key: 'facialconsistency',
+    tag: '/facial-consistency',
+    name: 'Facial Consistency',
+    category: 'identity',
+    descriptionId: 'Menjaga konsistensi identitas, proporsi, fitur wajah, usia tampak, dan karakteristik alami subjek berdasarkan referensi.',
+    descriptionEn: 'Maintains consistency of identity, proportions, facial features, apparent age, and natural characteristics based on reference.',
+    promptInstruction: 'Facial Consistency: Maintain strict consistency of facial identity, proportions, facial features, apparent age, and natural characteristics matching the reference.',
+    promptInstructionId: 'Facial Consistency: Menjaga konsistensi identitas, proporsi, fitur wajah, usia tampak, dan karakteristik alami subjek berdasarkan referensi.',
+    requiresReference: true,
+    compatibilityGroup: 'face-identity',
+  },
 ];
 
 /**
@@ -236,30 +272,91 @@ export function getActiveLockTags(locks: CharacterLocksState): string[] {
   return getActiveLocks(locks).map((item) => item.tag);
 }
 
+export interface IntegrateShorthandsOptions {
+  isNyata?: boolean;
+  photoStyles?: string[];
+  storyStyle?: string;
+  hasFaceReference?: boolean;
+}
+
 /**
  * Builds deduplicated natural language instructions from active Character Locks and optional presets.
- * If two locks overlap (e.g. bodyshape and bodyproportionlock, or poselock and poseconsistency),
+ * If two locks overlap (e.g. bodyshape and bodyproportionlock, or multiple face identity locks),
  * they are merged cleanly into a single authoritative directive without duplicating text.
  */
 export function buildDeduplicatedLockDirectives(
   locks: CharacterLocksState,
-  isNyata?: boolean
+  optionsOrNyata?: boolean | string[] | IntegrateShorthandsOptions
 ): string[] {
+  let isNyata = false;
+  let photoStyles: string[] = [];
+  let storyStyle = '';
+  let hasFaceReference = true; // default true if unspecified to preserve existing behavior
+
+  if (typeof optionsOrNyata === 'boolean') {
+    isNyata = optionsOrNyata;
+  } else if (Array.isArray(optionsOrNyata)) {
+    photoStyles = optionsOrNyata;
+  } else if (optionsOrNyata && typeof optionsOrNyata === 'object') {
+    isNyata = Boolean(optionsOrNyata.isNyata);
+    photoStyles = optionsOrNyata.photoStyles || [];
+    storyStyle = optionsOrNyata.storyStyle || '';
+    if (optionsOrNyata.hasFaceReference !== undefined) {
+      hasFaceReference = optionsOrNyata.hasFaceReference;
+    }
+  }
+
   const directives: string[] = [];
 
-  // 1. Face Identity Lock (facelock + optional Nyata identitylock)
-  if (locks.facelock || isNyata) {
-    if (locks.facelock && isNyata) {
+  // Check non-photographic style conflict:
+  const nonPhotoRegex = /^(?:anime|manga|comic|cartoon|illustration|watercolor|oil painting|pixel art|sketch|line art|vector|chibi)/i;
+  const isExplicitNonPhoto = nonPhotoRegex.test(storyStyle.trim());
+
+  // 1. Face Identity Locks (facelock, identitylock, facialconsistency + optional Nyata)
+  const hasFaceLocks = locks.facelock || locks.identitylock || locks.facialconsistency || isNyata;
+  if (hasFaceLocks) {
+    const activeFaceCount =
+      (locks.facelock ? 1 : 0) +
+      (locks.identitylock ? 1 : 0) +
+      (locks.facialconsistency ? 1 : 0) +
+      (isNyata ? 1 : 0);
+
+    const refClause = hasFaceReference ? 'matching the reference photo and prompt' : 'throughout the scene';
+
+    if (activeFaceCount > 1) {
       directives.push(
-        'Face Identity Lock: Strictly preserve subject facial identity, unique facial features, bone structure, eye shape, and recognizable likeness matching the reference image and prompt.'
+        `Face Identity Lock: Strictly preserve subject facial identity, facial consistency, bone structure, eye shape, facial proportions, apparent age, and distinctive features ${refClause} with maximum fidelity.`
+      );
+    } else if (locks.identitylock) {
+      directives.push(
+        `Identity Lock: Strictly preserve facial identity, proportions, eye shape, nose, lips, jawline, skin tone, hairline, and unique characteristics ${refClause}.`
+      );
+    } else if (locks.facialconsistency) {
+      directives.push(
+        `Facial Consistency Lock: Maintain strict consistency of facial identity, proportions, facial features, apparent age, and natural characteristics ${refClause}.`
       );
     } else if (locks.facelock) {
       directives.push(
-        'Face Lock: Strictly preserve facial bone structure, facial identity, eye shape, and recognizable features from reference.'
+        `Face Lock: Strictly preserve facial bone structure, facial identity, eye shape, and recognizable features from reference.`
       );
     } else if (isNyata) {
       directives.push(
-        'Face Identity Lock: Prioritize uploaded reference image as the primary identity anchor for facial geometry and features.'
+        hasFaceReference
+          ? 'Face Identity Lock: Prioritize uploaded reference image as the primary identity anchor for facial geometry and features.'
+          : 'Face Identity Lock: Maintain consistent facial geometry and recognizable features throughout all scene variations.'
+      );
+    }
+  }
+
+  // 1b. Reference Priority Lock
+  if (locks.referencepriority) {
+    if (hasFaceReference) {
+      directives.push(
+        'Reference Priority: Prioritize relevant visual characteristics in the reference image over conflicting generic text descriptions.'
+      );
+    } else {
+      directives.push(
+        'Reference Priority: Prioritize concrete visual descriptors and established subject identity over conflicting generic text descriptions.'
       );
     }
   }
@@ -336,6 +433,43 @@ export function buildDeduplicatedLockDirectives(
     );
   }
 
+  // 10. Photographic Shorthand Styles Directives (if selected and not in conflict with explicit non-photographic style)
+  if (!isExplicitNonPhoto && photoStyles.length > 0) {
+    const norm = photoStyles.map((s) => s.toLowerCase().trim());
+    const hasPhotorealism = norm.includes('photorealism') || norm.includes('/photorealism');
+    const hasMaxDetail = norm.includes('maximum detail') || norm.includes('/maximum-detail');
+    const hasSkinTexture = norm.includes('natural skin texture') || norm.includes('/natural-skin-texture');
+    const hasAntiArtifacts =
+      norm.includes('anti-ai-artifacts') ||
+      norm.includes('anti-ai artifacts') ||
+      norm.includes('/anti-ai-artifacts');
+
+    // Deduplication with Nyata: if Nyata is already on, its master directive already encompasses skin texture and photorealism
+    if (hasPhotorealism && !isNyata) {
+      directives.push(
+        'Photorealism: Authentic camera-captured photography aesthetic with physically plausible lighting, natural shadows, realistic color grading, perspective depth, and sensible human anatomy.'
+      );
+    }
+
+    if (hasSkinTexture && !isNyata) {
+      directives.push(
+        'Natural Skin Texture: Authentic human skin texture with visible pores, fine lines, subtle tonal variations, and realistic epidermal micro-details, strictly avoiding plastic, waxy, or overly smoothed airbrushed textures.'
+      );
+    }
+
+    if (hasMaxDetail) {
+      directives.push(
+        'Maximum Detail: High-fidelity natural sharpness across eyes, irises, hair strands, garment fabrics, and environmental elements without artificial oversharpening.'
+      );
+    }
+
+    if (hasAntiArtifacts && !isNyata) {
+      directives.push(
+        'Anti-AI Artifacts: Zero AI artifacts, eliminating facial distortions, artificial waxy sheen, plastic smoothing, unnatural anatomy, and visual inconsistencies.'
+      );
+    }
+  }
+
   return directives;
 }
 
@@ -343,19 +477,29 @@ export function buildDeduplicatedLockDirectives(
  * Deterministically integrates expanded active shorthand instructions into the final prompt text.
  * - Extracts and preserves any trailing aspect ratio parameter (--ar <ratio>).
  * - Avoids duplicate sentence injection if already present.
- * - If no locks are active, leaves the prompt clean without inserting unwanted constraints.
+ * - If no locks/styles are active, leaves the prompt clean without inserting unwanted constraints.
  */
 export function integrateActiveShorthandsIntoPrompt(
   prompt: string,
   locks: CharacterLocksState,
-  isNyata?: boolean
+  optionsOrNyata?: boolean | string[] | IntegrateShorthandsOptions
 ): string {
   const activeCount = Object.values(locks).filter(Boolean).length;
-  if (activeCount === 0 && !isNyata) {
+  let hasStylesOrNyata = false;
+
+  if (typeof optionsOrNyata === 'boolean') {
+    hasStylesOrNyata = optionsOrNyata;
+  } else if (Array.isArray(optionsOrNyata)) {
+    hasStylesOrNyata = optionsOrNyata.length > 0;
+  } else if (optionsOrNyata && typeof optionsOrNyata === 'object') {
+    hasStylesOrNyata = Boolean(optionsOrNyata.isNyata || (optionsOrNyata.photoStyles && optionsOrNyata.photoStyles.length > 0));
+  }
+
+  if (activeCount === 0 && !hasStylesOrNyata) {
     return prompt.trim();
   }
 
-  const directives = buildDeduplicatedLockDirectives(locks, isNyata);
+  const directives = buildDeduplicatedLockDirectives(locks, optionsOrNyata);
   if (directives.length === 0) {
     return prompt.trim();
   }

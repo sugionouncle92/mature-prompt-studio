@@ -1,6 +1,6 @@
 import React from 'react';
-import { Lock, ShieldCheck, UserCheck, Check, Scale, Activity, Compass, Eye } from 'lucide-react';
-import { CharacterLocksState } from '../types/index.ts';
+import { Lock, ShieldCheck, UserCheck, Check, Scale, Activity, Compass, Eye, Sparkles, RotateCcw } from 'lucide-react';
+import { CharacterLocksState, DEFAULT_CHARACTER_LOCKS } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext';
 import { CHARACTER_LOCKS_CONFIG } from '../data/characterLocks.ts';
 
@@ -20,19 +20,15 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
   };
 
   const setAll = (val: boolean) => {
-    onChange({
-      facelock: val,
-      bodyshape: val,
-      outfitlock: val,
-      poselock: val,
-      agepreserve: val,
-      expressionlock: val,
-      hairlock: val,
-      bodyproportionlock: val,
-      anatomylock: val,
-      poseconsistency: val,
-      perspectivecorrection: val,
+    const nextState = { ...locks };
+    CHARACTER_LOCKS_CONFIG.forEach((cfg) => {
+      nextState[cfg.key] = val;
     });
+    onChange(nextState);
+  };
+
+  const handleResetDefault = () => {
+    onChange({ ...DEFAULT_CHARACTER_LOCKS });
   };
 
   const getLockIcon = (key: keyof CharacterLocksState) => {
@@ -47,6 +43,12 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
         return <Compass className="w-3.5 h-3.5 text-cyan-400" />;
       case 'perspectivecorrection':
         return <Eye className="w-3.5 h-3.5 text-indigo-400" />;
+      case 'identitylock':
+        return <UserCheck className="w-3.5 h-3.5 text-rose-400" />;
+      case 'referencepriority':
+        return <Sparkles className="w-3.5 h-3.5 text-amber-400" />;
+      case 'facialconsistency':
+        return <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />;
       default:
         return <UserCheck className="w-3.5 h-3.5 text-slate-400" />;
     }
@@ -73,7 +75,16 @@ export const CharacterLocks: React.FC<CharacterLocksProps> = ({ locks, onChange 
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            type="button"
+            onClick={handleResetDefault}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+            title="Reset Character Locks to default state"
+          >
+            <RotateCcw className="w-3 h-3 text-rose-400" />
+            {t.resetLocks || 'Reset Default'}
+          </button>
           <button
             type="button"
             onClick={() => setAll(true)}

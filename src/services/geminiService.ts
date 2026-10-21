@@ -14,6 +14,8 @@ import {
 import {
   NYATA_STYLE_CONFIG,
   NYATA_PROMPT_DIRECTIVE,
+  getActivePhotographicShorthands,
+  getActivePhotographicDirectives,
 } from '../data/photographicStyles.ts';
 import {
   CHARACTER_LOCKS_CONFIG,
@@ -325,10 +327,18 @@ export class GeminiService {
     const isNyata = input.photographicStyle.selected.includes('nyata') || 
                     input.photographicStyle.selected.includes('Nyata');
     const withShorthandsPrompts = finalizedPrompts.map((p) =>
-      integrateActiveShorthandsIntoPrompt(p, input.characterLocks, isNyata)
+      integrateActiveShorthandsIntoPrompt(p, input.characterLocks, {
+        isNyata,
+        photoStyles: input.photographicStyle.selected,
+        storyStyle: input.storyStyle?.primary || '',
+        hasFaceReference: Boolean(input.referenceImages && input.referenceImages.length > 0),
+      })
     );
 
-    const activeLockTags = getActiveLockTags(input.characterLocks);
+    const activeLockTags = [
+      ...getActiveLockTags(input.characterLocks),
+      ...getActivePhotographicShorthands(input.photographicStyle.selected),
+    ];
 
     return withShorthandsPrompts.map((p, idx) => ({
       id: `prompt-${Date.now()}-${idx}`,
@@ -445,7 +455,12 @@ RULES:
     repairedPromptText = GeminiService.applyAspectRatio(repairedPromptText, input.selectedAspectRatio);
     const isNyataRepair = input.photographicStyle.selected.includes('nyata') || 
                           input.photographicStyle.selected.includes('Nyata');
-    repairedPromptText = integrateActiveShorthandsIntoPrompt(repairedPromptText, input.characterLocks, isNyataRepair);
+    repairedPromptText = integrateActiveShorthandsIntoPrompt(repairedPromptText, input.characterLocks, {
+      isNyata: isNyataRepair,
+      photoStyles: input.photographicStyle.selected,
+      storyStyle: input.storyStyle?.primary || '',
+      hasFaceReference: Boolean(input.referenceImages && input.referenceImages.length > 0),
+    });
 
     // 3. Re-validate repaired prompt
     const newFidelityCheck = GeminiService.validateOutfitFidelity(repairedPromptText, input);
@@ -453,7 +468,10 @@ RULES:
     return {
       ...item,
       prompt: repairedPromptText,
-      activeLocks: item.activeLocks || getActiveLockTags(input.characterLocks),
+      activeLocks: item.activeLocks || [
+        ...getActiveLockTags(input.characterLocks),
+        ...getActivePhotographicShorthands(input.photographicStyle.selected),
+      ],
       fidelityCheck: newFidelityCheck,
     };
   }
@@ -1262,6 +1280,13 @@ VARIATIONS DIVERSITY:
 - Face Identity Lock Shorthand: ${NYATA_STYLE_CONFIG.faceIdentityLock.shorthand}
 - Natural Photorealism Shorthand: ${NYATA_STYLE_CONFIG.naturalPhotorealism.shorthand}
 - Principles: Prioritize uploaded reference image as the primary identity anchor (facial geometry, proportions, natural age). Render authentic camera-captured realism with visible skin pores and natural microtexture without beauty filters, plastic skin, or artificial distortion.`);
+    } else {
+      const activePhotoDirectives = getActivePhotographicDirectives(input.photographicStyle.selected);
+      if (activePhotoDirectives.length > 0) {
+        photoParts.push(
+          `Active Photographic Shorthand Directives:\n${activePhotoDirectives.map((d) => `- ${d.tag} (${d.name}): ${d.directive}`).join('\n')}`
+        );
+      }
     }
     if (photoParts.length > 0) {
       parts.push(`\n[PHOTOGRAPHIC RENDERING STYLES]:\n${photoParts.join('\n')}`);

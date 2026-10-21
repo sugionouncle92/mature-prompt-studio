@@ -51,6 +51,9 @@ export interface CharacterLocksState {
   anatomylock: boolean; // /anatomylock
   poseconsistency: boolean; // /poseconsistency
   perspectivecorrection: boolean; // /perspectivecorrection
+  identitylock: boolean; // /identitylock
+  referencepriority: boolean; // /referencepriority
+  facialconsistency: boolean; // /facial-consistency
 }
 
 export const DEFAULT_CHARACTER_LOCKS: CharacterLocksState = {
@@ -65,6 +68,9 @@ export const DEFAULT_CHARACTER_LOCKS: CharacterLocksState = {
   anatomylock: true,
   poseconsistency: true,
   perspectivecorrection: true,
+  identitylock: true,
+  referencepriority: true,
+  facialconsistency: true,
 };
 
 export type VariationPreset = 1 | 3 | 5 | 10 | 'custom';

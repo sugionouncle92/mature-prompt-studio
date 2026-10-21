@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Camera, Check, Sparkles, X, RotateCcw, Search } from 'lucide-react';
-import { PHOTOGRAPHIC_STYLES } from '../data/photographicStyles.ts';
+import { PHOTOGRAPHIC_STYLES, DEFAULT_PHOTOGRAPHIC_STYLES } from '../data/photographicStyles.ts';
 import { PhotographicStyleSelection } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -37,6 +37,13 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
     });
   };
 
+  const handleResetDefault = () => {
+    onChange({
+      selected: [...DEFAULT_PHOTOGRAPHIC_STYLES],
+      custom: '',
+    });
+  };
+
   const getStyleDescription = (id: string, fallback: string) => {
     const descMap = t.photoDesc as Record<string, string>;
     return descMap[id] || fallback;
@@ -44,9 +51,11 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
 
   const filteredStyles = PHOTOGRAPHIC_STYLES.filter((style) => {
     const localizedDesc = getStyleDescription(style.id, style.description);
+    const q = searchQuery.toLowerCase().trim();
     return (
-      style.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      localizedDesc.toLowerCase().includes(searchQuery.toLowerCase())
+      style.name.toLowerCase().includes(q) ||
+      (style.shorthand && style.shorthand.toLowerCase().includes(q)) ||
+      localizedDesc.toLowerCase().includes(q)
     );
   });
 
@@ -67,15 +76,27 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
           </p>
         </div>
 
-        {hasSelections && (
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           <button
-            onClick={handleClearAll}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition self-start sm:self-auto"
+            type="button"
+            onClick={handleResetDefault}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+            title="Reset Photographic Styles to default state"
           >
-            <RotateCcw className="w-3 h-3" />
-            {t.clearPhotoStyles}
+            <RotateCcw className="w-3 h-3 text-cyan-400" />
+            {t.resetPhotoStyles || 'Reset Default'}
           </button>
-        )}
+          {hasSelections && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 rounded-lg transition"
+            >
+              <X className="w-3 h-3" />
+              {t.clearPhotoStyles}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Active Tags */}
@@ -171,6 +192,11 @@ export const PhotographicStyleSelector: React.FC<PhotographicStyleSelectorProps>
               <div className="flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-1.5 gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
+                    {style.shorthand && (
+                      <span className="font-mono text-[10px] font-bold text-amber-300 tracking-tight bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                        {style.shorthand}
+                      </span>
+                    )}
                     <span className="text-xs font-semibold text-slate-200">{style.name}</span>
                     {isUltra && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-0.5">

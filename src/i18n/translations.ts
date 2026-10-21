@@ -161,6 +161,7 @@ export const translations = {
     photoStyleTitle: 'Photographic Style — Visual Rendering Selector',
     photoStyleSubtitle: 'Pilih satu atau lebih gaya visual. Ultra Realistic memperkaya tekstur mikro & akurasi optik secara substantif.',
     clearPhotoStyles: 'Hapus Gaya Fotografi',
+    resetPhotoStyles: 'Reset Default',
     searchPhotoPlaceholder: 'Cari gaya fotografi...',
     customPhotoPlaceholder: 'Custom Photographic Style (misal: 35mm Kodachrome Analog Grain)',
     microdetailBadge: 'Detail Mikro',
@@ -170,6 +171,10 @@ export const translations = {
       nyata: 'Mempertahankan identitas wajah sesuai referensi, tekstur kulit manusia yang autentik, detail anatomis alami, serta realisme fotografis tanpa efek kecantikan buatan.',
       photorealistic: 'Tampilan foto meyakinkan, pencahayaan alami masuk akal, kemiripan autentik seperti tangkapan kamera nyata.',
       'ultra-realistic': 'Tekstur mikro autentik, pori-pori kulit tampak & ketidaksempurnaan alami, helai bulu mata & rambut nyata, serat kain, dan pencahayaan fisik masuk akal.',
+      photorealism: 'Menghasilkan karakter visual seperti fotografi nyata dengan pencahayaan, bayangan, warna, perspektif, dan anatomi yang masuk akal.',
+      'maximum-detail': 'Memperkuat detail mata, rambut, tekstur kulit, pakaian, material, dan lingkungan dengan ketajaman alami tanpa penajaman berlebihan.',
+      'natural-skin-texture': 'Mempertahankan pori-pori, garis halus, variasi tonal, dan ketidaksempurnaan kulit yang wajar, serta menghindari tampilan kulit plastik, lilin, atau terlalu halus.',
+      'anti-ai-artifacts': 'Mengurangi distorsi wajah, tekstur artifisial, anatomi tidak wajar, dan inkonsistensi detail visual.',
       'raw-photo': 'Karakter fotografi tanpa polesan berlebih, tekstur alami non-destruktif, warna realistis tanpa saturasi berlebih.',
       'cinematic-photography': 'Komposisi sinematik, pencahayaan terarah, kedalaman atmosfer, bayangan dramatis, dan visual storytelling.',
       'natural-camera': 'Perspektif masuk akal, pencahayaan sekitar alami, kedalaman ruang autentik, dan fotografi tanpa manipulasi berlebih.',
@@ -183,6 +188,7 @@ export const translations = {
     activeLocksCount: 'Aktif',
     lockAll: 'Kunci Semua',
     unlockAll: 'Buka Semua',
+    resetLocks: 'Reset Default',
     locksDesc: {
       facelock: 'Mempertahankan struktur tulang wajah, identitas wajah, dan fitur unik dari prompt referensi.',
       bodyshape: 'Mempertahankan siluet tubuh, postur, tinggi, dan proporsi fisik karakter secara konsisten.',
@@ -195,6 +201,9 @@ export const translations = {
       anatomylock: 'Menjaga struktur anatomi manusia tetap masuk akal, termasuk jumlah dan bentuk anggota tubuh, posisi sendi, struktur tangan dan kaki, serta hubungan anatomis antarbagiannya. Mengurangi distorsi anatomi tanpa mengubah pose yang diminta.',
       poseconsistency: 'Mempertahankan konsistensi pose, posisi anggota tubuh, arah badan, orientasi kepala, dan hubungan spasial antarbagiannya sesuai pose referensi atau instruksi pengguna. Mencegah perubahan pose yang tidak disengaja.',
       perspectivecorrection: 'Menjaga perspektif kamera, hubungan ukuran relatif antara bagian tubuh, arah pandang, dan konsistensi geometri visual agar tidak terjadi distorsi perspektif yang tidak diinginkan. Tetap mempertahankan perspektif kreatif yang secara eksplisit diminta pengguna.',
+      identitylock: 'Mempertahankan identitas wajah berdasarkan foto referensi, termasuk proporsi wajah, bentuk mata, hidung, bibir, rahang, warna kulit, garis rambut, dan ciri khas subjek.',
+      referencepriority: 'Memprioritaskan karakteristik visual yang relevan pada gambar referensi dibandingkan deskripsi teks umum yang bertentangan dengannya.',
+      facialconsistency: 'Menjaga konsistensi identitas, proporsi, fitur wajah, usia tampak, dan karakteristik alami subjek berdasarkan referensi.',
     },
 
     // Variation Settings
@@ -475,6 +484,7 @@ export const translations = {
     photoStyleTitle: 'Photographic Style — Visual Rendering Selector',
     photoStyleSubtitle: 'Select one or more visual styles. Ultra Realistic substantially enriches micro-textures & optical accuracy.',
     clearPhotoStyles: 'Clear Photographic Styles',
+    resetPhotoStyles: 'Reset Default',
     searchPhotoPlaceholder: 'Search photographic styles...',
     customPhotoPlaceholder: 'Custom Photographic Style (e.g. 35mm Kodachrome Analog Grain)',
     microdetailBadge: 'Microdetail',
@@ -484,6 +494,10 @@ export const translations = {
       nyata: 'Preserves facial identity matching reference, authentic human skin texture, natural anatomical detail, and photographic realism without artificial beautification.',
       photorealistic: 'Convincing photo aesthetic, sensible natural lighting, authentic visual fidelity resembling real camera capture.',
       'ultra-realistic': 'Authentic micro-textures, visible skin pores & subtle imperfections, realistic eyelashes, hair strands, fabric fibers, and physically plausible lighting.',
+      photorealism: 'Produces authentic camera-captured photographic visual character with plausible lighting, shadows, colors, perspective, and anatomy.',
+      'maximum-detail': 'Enhances natural sharpness and micro-detail across eyes, hair strands, skin textures, fabric weave, materials, and environment without artificial oversharpening.',
+      'natural-skin-texture': 'Maintains authentic skin pores, fine lines, subtle tonal variations, and natural epidermal imperfections, avoiding plastic, waxy, or excessively airbrushed skin.',
+      'anti-ai-artifacts': 'Eliminates facial distortion, artificial digital textures, unnatural anatomy, and visual detail inconsistencies.',
       'raw-photo': 'Unprocessed camera look, natural non-destructive textures, realistic uncrushed colors, and balanced non-aggressive dynamic range.',
       'cinematic-photography': 'Directed lighting, atmospheric depth, cinematic framing, moody shadows, and deliberate narrative staging.',
       'natural-camera': 'Sensible perspective, natural ambient light, authentic depth of field, and unpolished realistic photography.',
@@ -497,6 +511,7 @@ export const translations = {
     activeLocksCount: 'Active',
     lockAll: 'Lock All',
     unlockAll: 'Unlock All',
+    resetLocks: 'Reset Default',
     locksDesc: {
       facelock: 'Preserves facial bone structure, facial identity, and recognizable features from the reference prompt.',
       bodyshape: 'Maintains exact body silhouette, build, height, and physical proportions consistently.',
@@ -509,6 +524,9 @@ export const translations = {
       anatomylock: 'Maintains anatomically plausible human structure, correct limb count, joint articulation, and natural hand/foot anatomy without altering requested poses.',
       poseconsistency: 'Preserves consistent pose, limb placement, body orientation, head angle, and spatial relationships matching reference poses or user instructions.',
       perspectivecorrection: 'Maintains coherent camera perspective, relative anatomical scaling, gaze direction, and visual geometric consistency without unintended optical distortion.',
+      identitylock: 'Preserves facial identity based on reference photo, including facial proportions, eye shape, nose, lips, jawline, skin tone, hairline, and unique characteristics.',
+      referencepriority: 'Prioritizes relevant visual characteristics in the reference image over conflicting generic text descriptions.',
+      facialconsistency: 'Maintains consistency of identity, proportions, facial features, apparent age, and natural characteristics based on reference.',
     },
 
     // Variation Settings

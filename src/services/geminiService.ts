@@ -11,6 +11,10 @@ import {
   getFramingOptionByIdOrName,
   resolveAutoFraming,
 } from '../data/framingOptions.ts';
+import {
+  NYATA_STYLE_CONFIG,
+  NYATA_PROMPT_DIRECTIVE,
+} from '../data/photographicStyles.ts';
 
 export interface ModelValidationResult {
   valid: boolean;
@@ -807,6 +811,8 @@ RULES:
   private buildSystemInstruction(input: GenerationInput): string {
     const isUltra = input.photographicStyle.selected.includes('ultra-realistic') || 
                     input.photographicStyle.selected.includes('Ultra Realistic');
+    const isNyata = input.photographicStyle.selected.includes('nyata') || 
+                    input.photographicStyle.selected.includes('Nyata');
 
     const hasAspectRatio = input.selectedAspectRatio && input.selectedAspectRatio !== 'auto';
     const aspectRatioMandate = hasAspectRatio
@@ -1081,6 +1087,8 @@ ${isUltra ? `ULTRA REALISTIC RENDERING MANDATE:
 - Strictly AVOID: plastic/waxy skin, oversmoothing, artificial symmetry, exaggerated body proportions, synthetic digital grain, fake pores, and CGI/3D render appearance.
 - Do NOT simply append the phrase 'ultra realistic'; substantively enrich the descriptions of skin, hair, cloth, lighting, and optical depth.` : ''}
 
+${isNyata ? `${NYATA_PROMPT_DIRECTIVE}` : ''}
+
 ${layeringDirective}
 
 PRIORITY OF SOURCES & CONFLICT RESOLUTION:
@@ -1231,6 +1239,14 @@ VARIATIONS DIVERSITY:
     }
     if (input.photographicStyle.custom && input.photographicStyle.custom.trim()) {
       photoParts.push(`Custom Photographic Style: "${input.photographicStyle.custom.trim()}"`);
+    }
+    const isNyataPrompt = input.photographicStyle.selected.includes('nyata') || 
+                          input.photographicStyle.selected.includes('Nyata');
+    if (isNyataPrompt) {
+      photoParts.push(`Nyata Preset Directives:
+- Face Identity Lock Shorthand: ${NYATA_STYLE_CONFIG.faceIdentityLock.shorthand}
+- Natural Photorealism Shorthand: ${NYATA_STYLE_CONFIG.naturalPhotorealism.shorthand}
+- Principles: Prioritize uploaded reference image as the primary identity anchor (facial geometry, proportions, natural age). Render authentic camera-captured realism with visible skin pores and natural microtexture without beauty filters, plastic skin, or artificial distortion.`);
     }
     if (photoParts.length > 0) {
       parts.push(`\n[PHOTOGRAPHIC RENDERING STYLES]:\n${photoParts.join('\n')}`);

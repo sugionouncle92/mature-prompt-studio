@@ -167,6 +167,7 @@ export const translations = {
 
     // Photographic Style descriptions (Indonesian)
     photoDesc: {
+      nyata: 'Mempertahankan identitas wajah sesuai referensi, tekstur kulit manusia yang autentik, detail anatomis alami, serta realisme fotografis tanpa efek kecantikan buatan.',
       photorealistic: 'Tampilan foto meyakinkan, pencahayaan alami masuk akal, kemiripan autentik seperti tangkapan kamera nyata.',
       'ultra-realistic': 'Tekstur mikro autentik, pori-pori kulit tampak & ketidaksempurnaan alami, helai bulu mata & rambut nyata, serat kain, dan pencahayaan fisik masuk akal.',
       'raw-photo': 'Karakter fotografi tanpa polesan berlebih, tekstur alami non-destruktif, warna realistis tanpa saturasi berlebih.',
@@ -474,6 +475,7 @@ export const translations = {
 
     // Photographic Style descriptions (English)
     photoDesc: {
+      nyata: 'Preserves facial identity matching reference, authentic human skin texture, natural anatomical detail, and photographic realism without artificial beautification.',
       photorealistic: 'Convincing photo aesthetic, sensible natural lighting, authentic visual fidelity resembling real camera capture.',
       'ultra-realistic': 'Authentic micro-textures, visible skin pores & subtle imperfections, realistic eyelashes, hair strands, fabric fibers, and physically plausible lighting.',
       'raw-photo': 'Unprocessed camera look, natural non-destructive textures, realistic uncrushed colors, and balanced non-aggressive dynamic range.',

@@ -16,7 +16,11 @@ import {
   getStoryStyleDescription,
   getStyleVisualDirective,
 } from '../src/data/storyStyles.ts';
-import { PHOTOGRAPHIC_STYLES } from '../src/data/photographicStyles.ts';
+import {
+  PHOTOGRAPHIC_STYLES,
+  NYATA_STYLE_CONFIG,
+  NYATA_PROMPT_DIRECTIVE,
+} from '../src/data/photographicStyles.ts';
 import { GeminiService } from '../src/services/geminiService.ts';
 import { translations } from '../src/i18n/translations.ts';
 import { UNDERGARMENT_CONTROL_MODES, DEFAULT_CHARACTER_LOCKS } from '../src/types/index.ts';
@@ -1304,7 +1308,85 @@ service1.testConnection('', 'gemini-2.5-flash').then((res) => {
   assert.ok(storyStyleSrc.includes("const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});"), 'StoryStyleSelector must default all categories to hidden/collapsed (openCategories = {})');
   console.log('✓ Default Application Settings verified: Aspect Ratio = 9:16, Shot Framing = ON + Auto, Story Style Selector = Hide All.');
 
-  console.log('\n--- ALL TEST SUITE CHECKS PASSED SUCCESSFULLY (12/12) ---');
+  // 13. Verify Photographic Style "Nyata" Preset (Catalog, Descriptions, Prompt Integration, Coexistence, and Isolation)
+  console.log('Test 13: Verify Photographic Style "Nyata" Preset...');
+  
+  // 13a. Catalog verification
+  const nyataItem = PHOTOGRAPHIC_STYLES.find(s => s.id === 'nyata');
+  assert.ok(nyataItem, 'Style "Nyata" must exist in PHOTOGRAPHIC_STYLES');
+  assert.strictEqual(nyataItem.name, 'Nyata');
+  assert.ok(nyataItem.description.includes('identitas wajah sesuai referensi'), 'Description must match specified text');
+  assert.ok(nyataItem.description.includes('tekstur kulit manusia yang autentik'));
+
+  // 13b. Translations verification
+  assert.strictEqual(translations.id.photoDesc.nyata, nyataItem.description, 'Indonesian translation must match');
+  assert.ok(translations.en.photoDesc.nyata, 'English translation must exist');
+  assert.ok(translations.en.photoDesc.nyata.includes('facial identity matching reference'));
+
+  // 13c. Config structure verification
+  assert.strictEqual(NYATA_STYLE_CONFIG.id, 'nyata');
+  assert.strictEqual(NYATA_STYLE_CONFIG.name, 'Nyata');
+  assert.strictEqual(NYATA_STYLE_CONFIG.faceIdentityLock.shorthand, '/identitylock /master-face-lock /referencepriority /facial-consistency');
+  assert.strictEqual(NYATA_STYLE_CONFIG.naturalPhotorealism.shorthand, '/photorealism /maximum-detail /natural-skin-texture /anti-ai-artifacts');
+  assert.strictEqual(NYATA_STYLE_CONFIG.shorthands.length, 8);
+
+  // 13d. Prompt Integration - Solo Nyata
+  const inputSoloNyata = {
+    samplePrompt: '30-year-old woman in elegant silk dress.',
+    keywords: 'soft window light',
+    storyStyle: { primary: '', supporting: [], custom: '', matureSubstyle: null, matureIntensity: 'Soft' },
+    photographicStyle: { selected: ['Nyata'], custom: '' },
+    characterLocks: DEFAULT_CHARACTER_LOCKS,
+    variationCount: 1,
+  };
+
+  const sysInstNyata = service['buildSystemInstruction'](inputSoloNyata);
+  assert.ok(sysInstNyata.includes('NYATA RENDERING & FACE IDENTITY MANDATE (PRESET NYATA)'), 'Must include Nyata mandate header');
+  assert.ok(sysInstNyata.includes('/identitylock /master-face-lock /referencepriority /facial-consistency'), 'Must include Face Identity Lock shorthands');
+  assert.ok(sysInstNyata.includes('/photorealism /maximum-detail /natural-skin-texture /anti-ai-artifacts'), 'Must include Natural Photorealism shorthands');
+  assert.ok(sysInstNyata.includes('Gunakan gambar referensi yang diunggah sebagai acuan utama identitas wajah subjek.'), 'Must include Face Identity instructions');
+  assert.ok(sysInstNyata.includes('Hasil akhir harus tampak seperti foto nyata yang diambil menggunakan kamera'), 'Must include Natural Photorealism instructions');
+  assert.ok(!sysInstNyata.includes('ULTRA REALISTIC RENDERING MANDATE'), 'Must not include Ultra Realistic when only Nyata is selected');
+
+  const userPromptNyata = service['buildUserPrompt'](inputSoloNyata);
+  assert.ok(userPromptNyata.includes('Selected Styles: Nyata'));
+  assert.ok(userPromptNyata.includes('/identitylock /master-face-lock'));
+  assert.ok(userPromptNyata.includes('/photorealism /maximum-detail'));
+
+  // 13e. Coexistence with Ultra Realistic (Both selected, single injection each, complementary)
+  const inputBothStyles = {
+    ...inputSoloNyata,
+    photographicStyle: { selected: ['Nyata', 'Ultra Realistic'], custom: '' },
+  };
+
+  const sysInstBoth = service['buildSystemInstruction'](inputBothStyles);
+  assert.ok(sysInstBoth.includes('NYATA RENDERING & FACE IDENTITY MANDATE (PRESET NYATA)'), 'Must include Nyata mandate');
+  assert.ok(sysInstBoth.includes('ULTRA REALISTIC RENDERING MANDATE'), 'Must include Ultra Realistic mandate');
+  // Check exact single occurrence of Nyata mandate
+  const nyataMandateCount = (sysInstBoth.match(/NYATA RENDERING & FACE IDENTITY MANDATE/g) || []).length;
+  assert.strictEqual(nyataMandateCount, 1, 'Nyata mandate must appear exactly once');
+  const ultraMandateCount = (sysInstBoth.match(/ULTRA REALISTIC RENDERING MANDATE/g) || []).length;
+  assert.strictEqual(ultraMandateCount, 1, 'Ultra Realistic mandate must appear exactly once');
+
+  // 13f. Inactive Isolation (when Nyata is deselected, all its directives are removed cleanly)
+  const inputNyataDeselected = {
+    ...inputSoloNyata,
+    photographicStyle: { selected: ['Ultra Realistic'], custom: '' },
+  };
+
+  const sysInstDeselected = service['buildSystemInstruction'](inputNyataDeselected);
+  assert.ok(!sysInstDeselected.includes('NYATA RENDERING & FACE IDENTITY MANDATE'), 'Must not contain Nyata mandate when deselected');
+  assert.ok(!sysInstDeselected.includes('/identitylock /master-face-lock'), 'Must not contain Nyata shorthands when deselected');
+  assert.ok(sysInstDeselected.includes('ULTRA REALISTIC RENDERING MANDATE'), 'Ultra Realistic must remain intact');
+
+  const userPromptDeselected = service['buildUserPrompt'](inputNyataDeselected);
+  assert.ok(!userPromptDeselected.includes('Nyata Preset Directives'), 'User prompt must not contain Nyata directives when deselected');
+  assert.ok(!userPromptDeselected.includes('/identitylock /master-face-lock'), 'User prompt must not contain Nyata shorthands when deselected');
+  assert.ok(userPromptDeselected.includes('Selected Styles: Ultra Realistic'), 'Remaining styles must be intact');
+
+  console.log('✓ Photographic Style "Nyata" verified: Catalog, i18n, prompt integration, coexistence, and clean isolation.');
+
+  console.log('\n--- ALL TEST SUITE CHECKS PASSED SUCCESSFULLY (13/13) ---');
 }).catch((err) => {
   console.error('Test failed:', err);
   process.exit(1);
